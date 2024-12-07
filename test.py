@@ -55,7 +55,7 @@ def load_model_weights():
     Loads the trained MobileNetV2 model for gesture recognition.
     """
     try:
-        model = load_model("hand_gesture_recognition_hierarchical.h5")
+        model = load_model("hand_gesture_recognition_mobilenetv2.h5")
         print(model.summary())
         return model
     except Exception as e:
@@ -70,7 +70,7 @@ def predict_gesture(model):
     prediction = model.predict(processed_image)
     predicted_class = np.argmax(prediction)
 
-    gestures = ['5', '1', '2', '4', '3', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f']
+    gestures = ['5', '1', '2', '7', 'u', 'w', 'v', 'a', 'b', 'd', 'e']
     return gestures[predicted_class] if 0 <= predicted_class < len(gestures) else "Unknown"
 
 def set_background(camera, width=700, height=700):
