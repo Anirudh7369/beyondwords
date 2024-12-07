@@ -55,7 +55,7 @@ def load_model_weights():
     Loads the trained MobileNetV2 model for gesture recognition.
     """
     try:
-        model = load_model("hand_gesture_recognition_mobilenetv2.h5")
+        model = load_model("hand_gesture_recognition_hierarchical.h5")
         print(model.summary())
         return model
     except Exception as e:
