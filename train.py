@@ -24,7 +24,7 @@ tf.random.set_seed(30)
 DATASET_BASE_PATH = r"C:\Users\ASUS\PycharmProjects\BeyondWords\my_dataset"
 
 # Gesture categories
-list_of_gestures = ['5', '1', '2', '4', '3', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f']
+list_of_gestures = ['5', '1', '2', '7', '6', '3', '9', '4', '8', 'v', 'c']
 
 # Data augmentation
 datagen = ImageDataGenerator(
