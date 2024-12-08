@@ -1,10 +1,10 @@
+import os
 import cv2
 import imutils
 import numpy as np
 from tf_keras.models import load_model
-from tf_keras.applications.mobilenet_v2 import preprocess_input, MobileNetV2
+from tf_keras.applications.mobilenet_v2 import preprocess_input
 from tf_keras.preprocessing.image import img_to_array
-from PIL import Image
 
 # Global variables
 bg = None
@@ -25,29 +25,54 @@ def segment(image, threshold=25):
     """
     global bg
     diff = cv2.absdiff(bg.astype("uint8"), image)
-    thresholded = cv2.threshold(diff, threshold, 255, cv2.THRESH_BINARY)[1]
+    _, thresholded = cv2.threshold(diff, threshold, 255, cv2.THRESH_BINARY)
     contours, _ = cv2.findContours(thresholded.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-
     if len(contours) == 0:
         return None
     else:
         segmented = max(contours, key=cv2.contourArea)
         return thresholded, segmented
 
+def preprocess_and_match_dataset(image):
+    """
+    Converts the segmented hand to match the dataset's outline style.
+    """
+    # Enhance contrast using CLAHE
+    clahe = cv2.createCLAHE(clipLimit=2.5, tileGridSize=(8, 8))
+    enhanced_image = clahe.apply(image)
+
+    # Apply Gaussian Blur to reduce noise
+    blurred_image = cv2.GaussianBlur(enhanced_image, (5, 5), 0)
+
+    # Apply adaptive thresholding to mimic dataset contrast
+    adaptive_threshold = cv2.adaptiveThreshold(
+        blurred_image, 255,
+        cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+        cv2.THRESH_BINARY_INV, 11, 2
+    )
+
+    # Apply Canny edge detection for inner and outer edge detection
+    edges = cv2.Canny(adaptive_threshold, 30, 150)
+
+    # Refine edges using morphological operations
+    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
+    cleaned_edges = cv2.morphologyEx(edges, cv2.MORPH_CLOSE, kernel)
+
+    # Combine inner features and outlines for a similar appearance to the dataset
+    combined = cv2.bitwise_and(adaptive_threshold, cleaned_edges)
+
+    return combined
+
 def preprocess_image(image_path):
     """
     Preprocesses the image for model prediction.
     """
     image = cv2.imread(image_path)
-    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)  # Convert to RGB for MobileNetV2
-
-    # Resize image to 224x224 as expected by MobileNetV2
+    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
     image = cv2.resize(image, (224, 224))
-
-    # Convert image to array and preprocess it
     image = img_to_array(image)
-    image = np.expand_dims(image, axis=0)  # Add batch dimension
-    image = preprocess_input(image)  # Apply MobileNetV2 preprocessing
+    image = np.expand_dims(image, axis=0)
+    image = preprocess_input(image)
     return image
 
 def load_model_weights():
@@ -66,11 +91,10 @@ def predict_gesture(model):
     """
     Predicts the gesture using the trained model.
     """
-    processed_image = preprocess_image('Temp.png')  # Assuming Temp.png is the captured image
+    processed_image = preprocess_image('Temp.png')
     prediction = model.predict(processed_image)
     predicted_class = np.argmax(prediction)
-
-    gestures = ['5', '1', '2', '7', 'u', 'w', 'v', 'a', 'b', 'd', 'e']
+    gestures = ['5', '1', '2', '7', '6', '3', '9', '4', '8', 'v', 'c']
     return gestures[predicted_class] if 0 <= predicted_class < len(gestures) else "Unknown"
 
 def set_background(camera, width=700, height=700):
@@ -84,6 +108,7 @@ def set_background(camera, width=700, height=700):
     frame = imutils.resize(frame, width=width, height=height)
     return cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
+
 if __name__ == "__main__":
     accumWeight = 0.5
     camera = cv2.VideoCapture(0)
@@ -94,9 +119,9 @@ if __name__ == "__main__":
     model = load_model_weights()
     recognized_gestures = []
     last_gesture = ""
+    current_gesture = ""
     k = 0
 
-    # Set the plain background at the start (green screen-like effect)
     print("[STATUS] Capturing plain background...")
     plain_background = set_background(camera)
     if plain_background is None:
@@ -126,47 +151,26 @@ if __name__ == "__main__":
             elif num_frames == 29:
                 print("[STATUS] Calibration successful...")
         else:
-            # Subtract the plain background from the current frame
             hand = segment(gray)
             if hand is not None:
                 thresholded, segmented = hand
+                dataset_style_image = preprocess_and_match_dataset(thresholded)
 
-                # Smooth the thresholded image to avoid distortion
-                kernel = np.ones((3, 3), np.uint8)
-                thresholded = cv2.morphologyEx(thresholded, cv2.MORPH_CLOSE, kernel)
-
-                # Draw contours of the hand region
-                cv2.drawContours(clone, [segmented + (right, top)], -1, (0, 0, 255))
-                cv2.imshow("Thresholded", thresholded)
+                cv2.imshow("Dataset Style Hand Outline", dataset_style_image)
 
                 if k % (fps // 6) == 0:
-                    cv2.imwrite('Temp.png', thresholded)  # Save the thresholded image
+                    cv2.imwrite('Temp.png', dataset_style_image)
                     gesture = predict_gesture(model)
 
                     if gesture != last_gesture and gesture != "Blank":
                         recognized_gestures.append(gesture)
                         last_gesture = gesture
+                        current_gesture = gesture  # Update the current gesture
 
-                    cv2.putText(clone, gesture, (70, 45), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
-
-                # Green screen effect - Add the detected hand to the plain background
-                mask = cv2.bitwise_not(thresholded)
-
-                # Ensure the mask is the same size as the plain background
-                mask_resized = cv2.resize(mask, (plain_background.shape[1], plain_background.shape[0]))
-
-                # Ensure that mask is in the correct 8-bit unsigned format
-                mask_resized = mask_resized.astype(np.uint8)
-
-                # Resize the plain background to match the frame size
-                plain_background_resized = cv2.resize(plain_background, (clone.shape[1], clone.shape[0]))
-
-                # Create the hand area with the mask
-                hand_area = cv2.bitwise_and(plain_background_resized, plain_background_resized, mask=mask_resized)
-
-                # Resize clone to ensure it has 3 channels (if it is grayscale, convert it to BGR)
-                if len(clone.shape) == 2:  # Grayscale image
-                    clone = cv2.cvtColor(clone, cv2.COLOR_GRAY2BGR)
+                # Display the current gesture in the live cam feed
+                cv2.putText(clone, f"Current Sign: {current_gesture}", (10, 30),
+                            cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+                keypress = cv2.waitKey(1) & 0xFF
 
         cv2.rectangle(clone, (left, top), (right, bottom), (0, 255, 0), 2)
         cv2.imshow("Video Feed", clone)
