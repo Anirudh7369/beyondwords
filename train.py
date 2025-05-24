@@ -10,21 +10,16 @@ from tf_keras import backend as k
 import gc
 import numpy as np
 
-# Clear session and garbage collect
 k.clear_session()
 gc.collect()
 
-# Reproducibility
 random.seed(30)
 tf.random.set_seed(30)
 
-# Dataset paths
 DATASET_BASE_PATH = r"C:\Users\ASUS\PycharmProjects\BeyondWords\train_dataset"
 
-# Gesture categories
 list_of_gestures = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'Allah', 'B', 'Blank', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'Namaste', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z']
 
-# Data augmentation
 datagen = ImageDataGenerator(
     rescale=1.0 / 255,
     validation_split=0.2,
@@ -49,7 +44,6 @@ train_generator = datagen.flow_from_directory(
     seed=30
 )
 
-# Compute class weights
 class_weights = compute_class_weight(
     class_weight='balanced',
     classes=np.unique(train_generator.classes),
@@ -61,12 +55,10 @@ class_weights = dict(enumerate(class_weights))
 base_model = MobileNetV2(weights='imagenet', include_top=False, input_shape=(224, 224, 3))
 base_model.trainable = False  # Freeze base model layers
 
-# Attention mechanism
 def attention_layer(inputs):
     attention = Dense(inputs.shape[-1], activation='softmax')(inputs)
     return Multiply()([inputs, attention])
 
-# Build model
 inputs = Input(shape=(224, 224, 3))
 x = base_model(inputs, training=False)
 x = GlobalAveragePooling2D()(x)
@@ -79,18 +71,15 @@ outputs = Dense(len(list_of_gestures), activation='softmax')(x)
 
 model = Model(inputs, outputs)
 
-# Compile model
 model.compile(optimizer=Adam(learning_rate=1e-3),
               loss='sparse_categorical_crossentropy',
               metrics=['accuracy'])
 
-# Train model (weights optimization)
 history = model.fit(
     train_generator,
     epochs=20,
     class_weight=class_weights
 )
 
-# Save model weights
 model.save_weights('Final_trained_weights.h5')
 print("Model weights saved as 'Final_trained_weights.h5'")
