@@ -11,25 +11,18 @@ import numpy as np
 from tf_keras import backend as k
 from tf_keras.models import load_model
 
-
-# Clear Keras session and garbage collect
 k.clear_session()
 gc.collect()
 
-# Set seeds for reproducibility
 random.seed(30)
 tf.random.set_seed(30)
 
-# Validation dataset path (provide this path)
 VALIDATION_DATASET_PATH = r"C:\Users\ASUS\PycharmProjects\BeyondWords\Validation dataset"  # Input the validation dataset path here
 
-# Gesture categories
 list_of_gestures = ['5', '1', '2', '4', '3', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f']
 
-# Data augmentation (for validation, we only rescale images)
 datagen = ImageDataGenerator(rescale=1.0 / 255)
 
-# Validation generator
 validation_generator = datagen.flow_from_directory(
     VALIDATION_DATASET_PATH,  # Use the provided validation dataset path here
     target_size=(224, 224),
@@ -38,16 +31,13 @@ validation_generator = datagen.flow_from_directory(
     shuffle=False
 )
 
-# Base model: MobileNetV2
 base_model = MobileNetV2(weights='imagenet', include_top=False, input_shape=(224, 224, 3))
 base_model.trainable = False  # Freeze base model for initial training
 
-# Attention mechanism
 def attention_layer(inputs):
     attention = Dense(inputs.shape[-1], activation='softmax')(inputs)
     return Multiply()([inputs, attention])
 
-# Build the model with feature hierarchy and attention
 inputs = Input(shape=(224, 224, 3))
 x = base_model(inputs, training=False)
 x = GlobalAveragePooling2D()(x)
@@ -60,17 +50,13 @@ outputs = Dense(len(list_of_gestures), activation='softmax')(x)  # Output layer
 
 model = Model(inputs, outputs)
 
-# Compile the model
 model.compile(optimizer=Adam(learning_rate=1e-3),
               loss='sparse_categorical_crossentropy',
               metrics=['accuracy'])
 
-# Load the best saved model
 model = load_model("hand_gesture_recognition_hierarchical.h5")
 
-# Evaluate the model on the validation set
 validation_loss, validation_accuracy = model.evaluate(validation_generator, verbose=1)
 
-# Print validation accuracy and loss
 print(f"Validation Accuracy: {validation_accuracy:.4f}")
 print(f"Validation Loss: {validation_loss:.4f}")
