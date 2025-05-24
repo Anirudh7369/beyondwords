@@ -10,10 +10,10 @@ from tf_keras import backend as k
 import gc
 import numpy as np
 
-# Clear Keras session and garbage collect
+
 k.clear_session()
 gc.collect()
-# Dataset paths and setup (reuse from Train Code)
+
 DATASET_BASE_PATH = r"C:\Users\ASUS\PycharmProjects\BeyondWords\train_dataset"
 list_of_gestures = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'Allah', 'B', 'Blank', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'Namaste', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z']
 
@@ -49,7 +49,7 @@ validation_generator = datagen.flow_from_directory(
     shuffle=False
 )
 
-# Class weights (reuse from Train Code)
+
 from sklearn.utils.class_weight import compute_class_weight
 class_weights = compute_class_weight(
     class_weight='balanced',
@@ -58,16 +58,16 @@ class_weights = compute_class_weight(
 )
 class_weights = dict(enumerate(class_weights))
 
-# Rebuild base model
+
 base_model = MobileNetV2(weights='imagenet', include_top=False, input_shape=(224, 224, 3))
 base_model.trainable = False  # Initially freeze the base model
 
-# Attention mechanism
+
 def attention_layer(inputs):
     attention = Dense(inputs.shape[-1], activation='softmax')(inputs)
     return Multiply()([inputs, attention])
 
-# Rebuild the full model architecture
+
 inputs = Input(shape=(224, 224, 3))
 x = base_model(inputs, training=False)
 x = GlobalAveragePooling2D()(x)
@@ -80,21 +80,20 @@ outputs = Dense(len(list_of_gestures), activation='softmax')(x)
 
 model = Model(inputs, outputs)
 
-# Load weights from Train Code
+
 model.load_weights('Final_trained_weights.h5')
 print("Loaded weights from 'Final_trained_weights.h5'")
 
-# Unfreeze some layers for fine-tuning
+
 for layer in base_model.layers[-30:]:
     layer.trainable = True
 
-# Callbacks for hyperparameter tuning
+
 callbacks = [
     EarlyStopping(monitor='val_loss', patience=5, restore_best_weights=True),
     ModelCheckpoint('best_hyperparameter_model.h5', save_best_only=True, monitor='val_loss')
 ]
 
-# Hyperparameter tuning: Experiment with different learning rates
 learning_rates = [1e-3, 1e-4, 1e-5]
 best_accuracy = 0
 best_lr = None
@@ -105,7 +104,6 @@ for lr in learning_rates:
                   loss='sparse_categorical_crossentropy',
                   metrics=['accuracy'])
 
-    # Train model with validation data
     history_finetune = model.fit(
         train_generator,
         epochs=10,
@@ -114,7 +112,6 @@ for lr in learning_rates:
         callbacks=callbacks
     )
 
-    # Evaluate validation accuracy
     val_accuracy = max(history_finetune.history['val_accuracy'])
     print(f"Validation accuracy for lr={lr}: {val_accuracy}")
 
