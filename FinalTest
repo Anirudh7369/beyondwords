@@ -6,10 +6,9 @@ from tf_keras.models import load_model
 from tf_keras.applications.mobilenet_v2 import preprocess_input
 from tf_keras.preprocessing.image import img_to_array
 
-# Global variables
 bg = None
-predictions_count = defaultdict(int)  # To track the count of predictions for each gesture
-word = ""  # The final formed word
+predictions_count = defaultdict(int)  
+word = ""  
 
 # Functions from the Threshold Code
 def enhance_contrast(image):
@@ -89,9 +88,8 @@ def update_word(prediction):
     global predictions_count, word
 
     if prediction == "Blank":
-        return  # Ignore "Blank" predictions
+        return  
 
-    # Update the count for the current prediction
     predictions_count[prediction] += 1
 
     # Check if any letter is consistently predicted
@@ -124,11 +122,9 @@ if __name__ == "__main__":
         cv2.imshow("Threshold Output", threshold_output)
         cv2.imwrite('Temp.png', threshold_output)
 
-        # Predict the gesture and update the word
         gesture = predict_gesture(model)
         update_word(gesture)
 
-        # Display the word and current gesture on the frame
         cv2.putText(frame, f"Gesture: {gesture}", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
         cv2.putText(frame, f"Word: {word}", (10, 70), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
         cv2.imshow("Video Feed", frame)
