@@ -7,13 +7,19 @@ easily and confidently.
 ✨ Features
 
 🤟 Real-time Sign Language to Text Translation
+
 📷 Camera-based Gesture Recognition (Static + Dynamic)
+
 🧠 Trained Deep Learning Model (CNN/RNN/LSTM/Transformers)
+
 📱 User-Friendly FlutterFlow Interface
 
 💻 Tech Stack
 
 Frontend:- FlutterFlow
+
 Backend + Database:- Firebase
+
 Machine Learning:- TensorFlow, Keras, OpenCV
+
 Image Processing:- Gaussian Blur, Thresholding, Edge Detection
