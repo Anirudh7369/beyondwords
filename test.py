@@ -6,12 +6,10 @@ from tf_keras.models import load_model
 from tf_keras.applications.mobilenet_v2 import preprocess_input
 from tf_keras.preprocessing.image import img_to_array
 
-# Global variables
 bg = None
-predictions_count = defaultdict(int)  # To track the count of predictions for each gesture
-word = ""  # The final formed word
+predictions_count = defaultdict(int)  
+word = ""  
 
-# Functions from the Threshold Code
 def enhance_contrast(image):
     clahe = cv2.createCLAHE(clipLimit=3.0, tileGridSize=(8, 8))
     return clahe.apply(image)
@@ -49,7 +47,6 @@ def segment_hand(frame, mode="BlackBackground"):
     elif mode == "BlackBackground":
         return create_black_background_with_white_outlines(frame)
 
-# Model Prediction Logic
 def preprocess_image(image_path):
     image = cv2.imread(image_path)
     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
@@ -69,9 +66,7 @@ def load_model_weights():
         return None
 
 def predict_gesture(model):
-    """
-    Predicts the gesture using the trained model.
-    """
+    
     processed_image = preprocess_image('Temp.png')
     prediction = model.predict(processed_image)
     predicted_class = np.argmax(prediction)
@@ -84,28 +79,22 @@ def predict_gesture(model):
     }
     return gestures.get(predicted_class, "Unknown")  # Default to "Blank" if not found
 
-# Word Formation Logic
 def update_word(prediction):
     global predictions_count, word
 
     if prediction == "Blank":
         return  # Ignore "Blank" predictions
 
-    # Update the count for the current prediction
     predictions_count[prediction] += 1
 
-    # Check if any letter is consistently predicted
     if predictions_count[prediction] > 50:
-        # Ensure no other prediction is close to this prediction count
         max_count = max(predictions_count.values())
         second_max_count = sorted(predictions_count.values(), reverse=True)[1] if len(predictions_count) > 1 else 0
 
         if max_count - second_max_count > 20:
-            # Add the letter to the word and reset the dictionary
             word += prediction
             predictions_count.clear()
         else:
-            # Reset the dictionary to avoid wrong predictions
             predictions_count.clear()
 
 if __name__ == "__main__":
@@ -124,11 +113,9 @@ if __name__ == "__main__":
         cv2.imshow("Threshold Output", threshold_output)
         cv2.imwrite('Temp.png', threshold_output)
 
-        # Predict the gesture and update the word
         gesture = predict_gesture(model)
         update_word(gesture)
 
-        # Display the word and current gesture on the frame
         cv2.putText(frame, f"Gesture: {gesture}", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
         cv2.putText(frame, f"Word: {word}", (10, 70), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
         cv2.imshow("Video Feed", frame)
