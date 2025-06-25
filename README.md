@@ -10,7 +10,7 @@ easily and confidently.
 
 📷 Camera-based Gesture Recognition (Static + Dynamic)
 
-🧠 Trained Deep Learning Model (CNN/RNN/LSTM/Transformers)
+🧠 Trained Deep Learning Model (CNN)
 
 📱 User-Friendly FlutterFlow Interface
 
