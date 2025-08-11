@@ -1,0 +1,13 @@
+# Core ML/AI libraries
+tensorflow
+tf-keras
+scikit-learn
+numpy
+
+# Computer vision
+opencv-python
+mediapipe
+imutils
+
+# Utilities
+collections-extended
